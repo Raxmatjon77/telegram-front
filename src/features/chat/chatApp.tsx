@@ -1,132 +1,40 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChatList } from "./ChatList";
 import { ChatRoom } from "./ChatRoom";
 import { useSocket } from "../../hooks/useSocket";
 import { useAuth } from "../../context/authContext";
+import { useChatsApi } from "../../api/chats";
 import { Message, Chat } from "../../types";
 import { LogOut, MessageCircle } from "lucide-react";
 
-// Mock data for development
-const mockChats: Chat[] = [
-  {
-    id: "1",
-    participants: [
-      {
-        id: "user-1",
-        username: "Alice Johnson",
-        email: "alice@example.com",
-        avatar: "https://api.dicebear.com/7.x/initials/svg?seed=Alice",
-        isOnline: true,
-      },
-      {
-        id: "user-2",
-        username: "Bob Smith",
-        email: "bob@example.com",
-        avatar: "https://api.dicebear.com/7.x/initials/svg?seed=Bob",
-        isOnline: false,
-      },
-    ],
-    lastMessage: {
-      id: "1",
-      senderId: "user-1",
-      receiverId: "user-2",
-      content: "Hey there! How are you doing?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      isRead: false,
-    },
-    unreadCount: 2,
-    updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id: "2",
-    participants: [
-      {
-        id: "user-3",
-        username: "Charlie Wilson",
-        email: "charlie@example.com",
-        avatar: "https://api.dicebear.com/7.x/initials/svg?seed=Charlie",
-        isOnline: true,
-      },
-    ],
-    lastMessage: {
-      id: "2",
-      senderId: "user-3",
-      receiverId: "current-user",
-      content: "Thanks for your help earlier!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      isRead: true,
-    },
-    unreadCount: 0,
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-  },
-];
-
-const mockMessages: Record<string, Message[]> = {
-  "1": [
-    {
-      id: "1",
-      senderId: "user-1",
-      receiverId: "current-user",
-      content: "Hey there! How are you doing?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      isRead: true,
-    },
-    {
-      id: "2",
-      senderId: "current-user",
-      receiverId: "user-1",
-      content:
-        "I'm doing great, thanks! Just working on some new projects. How about you?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 50).toISOString(),
-      isRead: false,
-    },
-    {
-      id: "3",
-      senderId: "user-1",
-      receiverId: "current-user",
-      content:
-        "That sounds exciting! I'd love to hear more about your projects sometime.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      isRead: false,
-    },
-  ],
-  "2": [
-    {
-      id: "4",
-      senderId: "user-3",
-      receiverId: "current-user",
-      content: "Thanks for your help earlier!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      isRead: true,
-    },
-    {
-      id: "5",
-      senderId: "current-user",
-      receiverId: "user-3",
-      content: "You're welcome! Always happy to help.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1.5).toISOString(),
-      isRead: true,
-    },
-  ],
-};
-
 export const ChatApp: React.FC = () => {
   const { user, logout } = useAuth();
-  const [chats, setChats] = useState<Chat[]>(mockChats);
+  const chatsApi = useChatsApi();
+  
+  // Fetch chats from API
+  const { data: chats = [], refetch: refetchChats } = useQuery({
+    queryKey: ["chats"],
+    queryFn: chatsApi.getChats,
+    enabled: !!user,
+  });
+
   const [messages, setMessages] =
-    useState<Record<string, Message[]>>(mockMessages);
+    useState<Record<string, Message[]>>({});
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
-  const socket = useSocket({
+  const { sendMessage: socketSendMessage, joinChat, leaveChat, getMessages } = useSocket({
     onMessage: (message: Message) => {
       setMessages((prev) => ({
         ...prev,
-        [selectedChatId || ""]: [
-          ...(prev[selectedChatId || ""] || []),
+        [message.chatId]: [
+          ...(prev[message.chatId] || []),
           message,
         ],
       }));
+      // Refetch chats to update last message and unread count
+      refetchChats();
     },
     onUserOnline: (userId: string) => {
       // Update user online status
@@ -151,53 +59,48 @@ export const ChatApp: React.FC = () => {
     },
   });
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = (text: string) => {
     if (!selectedChatId || !user) return;
 
-    const selectedChat = chats.find((chat) => chat.id === selectedChatId);
-    if (!selectedChat) return;
-
-    const otherParticipant =
-      selectedChat.participants.find((p) => p.id !== user.id) ||
-      selectedChat.participants[0];
-
-    const newMessage: Message = {
-      id: Math.random().toString(36).substr(2, 9),
-      senderId: user.id,
-      receiverId: otherParticipant.id,
-      content,
-      timestamp: new Date().toISOString(),
-      isRead: false,
-    };
-
-    // Add message locally
-    setMessages((prev) => ({
-      ...prev,
-      [selectedChatId]: [...(prev[selectedChatId] || []), newMessage],
-    }));
-
     // Send via socket
-    socket.sendMessage(otherParticipant.id, content);
+    socketSendMessage(selectedChatId, text);
   };
 
   const handleChatSelect = (chatId: string) => {
     if (selectedChatId) {
-      socket.leaveChat(selectedChatId);
+      leaveChat(selectedChatId);
     }
     setSelectedChatId(chatId);
-    socket.joinChat(chatId);
+    joinChat(chatId);
     setTypingUsers([]);
+    
+    // Load messages for this chat if not already loaded
+    if (!messages[chatId]) {
+      loadMessages(chatId);
+    }
+  };
+
+  const loadMessages = async (chatId: string) => {
+    try {
+      const chatMessages = await getMessages(chatId, 50) as Message[];
+      setMessages((prev) => ({
+        ...prev,
+        [chatId]: chatMessages.reverse(), // Reverse because backend returns in desc order
+      }));
+    } catch (error) {
+      console.error("Failed to load messages:", error);
+    }
   };
 
   const handleTyping = () => {
     if (selectedChatId) {
-      socket.startTyping(selectedChatId);
+      // socket.startTyping(selectedChatId);
     }
   };
 
   const handleStopTyping = () => {
     if (selectedChatId) {
-      socket.stopTyping(selectedChatId);
+      // socket.stopTyping(selectedChatId);
     }
   };
 

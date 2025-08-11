@@ -66,8 +66,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   ) => {
     if (!previousMessage) return true;
 
-    const currentDate = new Date(currentMessage.timestamp).toDateString();
-    const previousDate = new Date(previousMessage.timestamp).toDateString();
+    const currentDate = new Date(currentMessage.createdAt).toDateString();
+    const previousDate = new Date(previousMessage.createdAt).toDateString();
 
     return currentDate !== previousDate;
   };
@@ -79,8 +79,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
     if (!previousMessage) return false;
 
     const timeDiff =
-      new Date(currentMessage.timestamp).getTime() -
-      new Date(previousMessage.timestamp).getTime();
+      new Date(currentMessage.createdAt).getTime() -
+      new Date(previousMessage.createdAt).getTime();
     const fiveMinutes = 5 * 60 * 1000;
 
     return (
@@ -170,7 +170,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                   {showDateHeader && (
                     <div className="flex justify-center my-4">
                       <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
-                        {formatDateHeader(message.timestamp)}
+                        {formatDateHeader(message.createdAt)}
                       </span>
                     </div>
                   )}
@@ -212,16 +212,22 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
                             : ""
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">
-                          {message.content}
-                        </p>
+                        {message.deletedAt ? (
+                          <p className="text-sm italic text-gray-500">
+                            This message was deleted
+                          </p>
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap">
+                            {message.text}
+                          </p>
+                        )}
                         <div
                           className={`flex items-center justify-end space-x-1 mt-1 ${
                             isOwnMessage ? "text-blue-100" : "text-gray-500"
                           }`}
                         >
                           <span className="text-xs">
-                            {formatMessageTime(message.timestamp)}
+                            {formatMessageTime(message.createdAt)}
                           </span>
                           {isOwnMessage && (
                             <span className="text-xs">

@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       dispatch({
         type: "LOGIN_SUCCESS",
-        payload: { token: data.token },
+        payload: { token: data.access_token },
       });
     } catch (error) {
       console.error("Login error:", error);
