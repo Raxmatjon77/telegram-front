@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {  useEffect, useRef } from "react";
 import { Avatar } from "../../components/avatar";
 import { MessageInput } from "./MessageInput";
 import { Message, User } from "../../types";
@@ -16,7 +16,7 @@ interface ChatRoomProps {
 }
 
 export const ChatRoom: React.FC<ChatRoomProps> = ({
-  chatId,
+  // chatId,
   messages,
   otherParticipant,
   onSendMessage,
@@ -24,7 +24,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({
   onStopTyping,
   typingUsers,
 }) => {
-  // const { user } = useAuth();
+  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 

@@ -11,6 +11,7 @@ export const useApi = () => {
     const headers = {
       "Content-Type": "application/json",
       "x-app-token": "123",
+      "x-user-token": `${token}`,
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     };
@@ -48,29 +49,17 @@ export const useApi = () => {
     });
   };
 
+  // FIX: Add missing PATCH method
+  const patch = async (endpoint: string, data?: any): Promise<Response> => {
+    return apiCall(endpoint, {
+      method: "PATCH",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  };
+
   const del = async (endpoint: string): Promise<Response> => {
     return apiCall(endpoint, { method: "DELETE" });
   };
 
-  return { get, post, put, delete: del, apiCall };
+  return { get, post, put, patch, delete: del, apiCall };
 };
-
-// Usage example in components:
-/*
-const MyComponent = () => {
-  const api = useApi();
-  
-  const fetchUserData = async () => {
-    try {
-      const response = await api.get('/user/profile');
-      const userData = await response.json();
-      // Handle success
-    } catch (error) {
-      // Handle error (including automatic logout on 401)
-      console.error('API error:', error);
-    }
-  };
-  
-  return <div>...</div>;
-};
-*/

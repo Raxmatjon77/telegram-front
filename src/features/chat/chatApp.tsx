@@ -10,7 +10,28 @@ import { LogOut, MessageCircle } from "lucide-react";
 
 export const ChatApp: React.FC = () => {
   const { user, logout } = useAuth();
+  // const chatsApi = useChatsApi();
   const chatsApi = useChatsApi();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredChats, setFilteredChats] = useState<Chat[]>([{id: "1", participants: [], unreadCount: 0, updatedAt: "",createdAt:"",type:"direct"}]);
+
+  // Search handler
+  const handleSearchChats = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      try {
+        const chats = await chatsApi.searchChats(query);
+        console.log(chats);
+        
+        setFilteredChats(chats);
+      } catch (error) {
+        // Optionally display error
+        setFilteredChats([]);
+      }
+    } else {
+      setFilteredChats(chats); // fallback to all chats
+    }
+  };
 
   // Fetch chats from API
   const { data: chats = [], refetch: refetchChats } = useQuery({
@@ -163,6 +184,7 @@ export const ChatApp: React.FC = () => {
           selectedChatId={selectedChatId}
           onChatSelect={handleChatSelect}
           onNewChat={handleNewChat}
+          onSearchChats={handleSearchChats}
         />
       </div>
 

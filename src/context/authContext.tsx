@@ -5,7 +5,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (
-    
+
     username: string,
     email: string,
     phone: string,
@@ -30,12 +30,14 @@ const authReducer = (
     case "LOGIN_SUCCESS":
     case "RESTORE_SESSION":
       return {
+        user: null,
         token: action.payload.token,
         isAuthenticated: true,
         isLoading: false,
       };
     case "LOGOUT":
       return {
+        user: null,
         token: null,
         isAuthenticated: false,
         isLoading: false,
@@ -51,6 +53,7 @@ const authReducer = (
 };
 
 const initialState: AuthState & { isLoading: boolean } = {
+  user: null,
   token: null,
   isAuthenticated: false,
   isLoading: true, // Start with loading true
