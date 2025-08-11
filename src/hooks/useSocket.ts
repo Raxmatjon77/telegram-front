@@ -14,12 +14,12 @@ interface SocketEvents {
 }
 
 export const useSocket = (events: SocketEvents) => {
-  const {  token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated  || !token) {
+    if (!isAuthenticated || !token) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -31,7 +31,6 @@ export const useSocket = (events: SocketEvents) => {
     socketRef.current = io(SOCKET_URL, {
       auth: {
         token,
-        userId: 'dwdw',
       },
       transports: ["websocket"],
     });
@@ -50,7 +49,7 @@ export const useSocket = (events: SocketEvents) => {
     });
 
     // Message events
-    socket.on("message", events.onMessage);
+    socket.on("newMessage", events.onMessage);
     socket.on("user_online", events.onUserOnline);
     socket.on("user_offline", events.onUserOffline);
     socket.on("typing", events.onTyping);
@@ -61,28 +60,52 @@ export const useSocket = (events: SocketEvents) => {
       socketRef.current = null;
       setIsConnected(false);
     };
-  }, [isAuthenticated, 'user', token]);
+  }, [isAuthenticated, token]);
 
-  const sendMessage = (receiverId: string, content: string) => {
+  const sendMessage = (
+    chatId: string,
+    text: string,
+    type?: string,
+    replyToId?: string
+  ) => {
     if (socketRef.current && isConnected) {
       const message = {
-        receiverId,
-        content,
-        timestamp: new Date().toISOString(),
+        chatId,
+        text,
+        type,
+        replyToId,
       };
-      socketRef.current.emit("send_message", message);
+      socketRef.current.emit("sendMessage", message);
     }
   };
 
   const joinChat = (chatId: string) => {
     if (socketRef.current && isConnected) {
-      socketRef.current.emit("join_chat", chatId);
+      socketRef.current.emit("joinChat", { chatId });
     }
   };
 
   const leaveChat = (chatId: string) => {
     if (socketRef.current && isConnected) {
-      socketRef.current.emit("leave_chat", chatId);
+      socketRef.current.emit("leaveChat", { chatId });
+    }
+  };
+
+  const getMessages = (chatId: string, limit?: number, cursor?: string) => {
+    if (socketRef.current && isConnected) {
+      return new Promise((resolve) => {
+        socketRef.current!.emit(
+          "getMessages",
+          { chatId, limit, cursor },
+          resolve
+        );
+      });
+    }
+  };
+
+  const deleteMessage = (messageId: string) => {
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit("deleteMessage", { messageId });
     }
   };
 
@@ -104,6 +127,8 @@ export const useSocket = (events: SocketEvents) => {
     sendMessage,
     joinChat,
     leaveChat,
+    getMessages,
+    deleteMessage,
     startTyping,
     stopTyping,
   };

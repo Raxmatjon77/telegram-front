@@ -5,6 +5,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (
+    
     username: string,
     email: string,
     phone: string,
@@ -148,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       dispatch({
         type: "LOGIN_SUCCESS",
-        payload: { token: data.token },
+        payload: { token: data.access_token },
       });
     } catch (error) {
       console.error("Login error:", error);

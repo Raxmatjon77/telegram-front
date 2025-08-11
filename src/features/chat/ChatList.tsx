@@ -113,18 +113,18 @@ export const ChatList: React.FC<ChatListProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-gray-900 truncate">
-                        {otherParticipant.username}
+                        {chat.name || otherParticipant.username}
                       </h3>
                       {chat.lastMessage && (
                         <span className="text-xs text-gray-500">
-                          {formatTime(chat.lastMessage.timestamp)}
+                          {formatTime(chat.lastMessage.createdAt)}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-gray-600 truncate">
                         {chat.lastMessage
-                          ? truncateMessage(chat.lastMessage.content)
+                          ? truncateMessage(chat.lastMessage.text)
                           : "No messages yet"}
                       </p>
                       {chat.unreadCount > 0 && (
